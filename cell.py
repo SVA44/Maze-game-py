@@ -12,13 +12,13 @@ class Cell:
     # draw grid cell walls
     def draw(self, sc, tile):
         x, y = self.x * tile, self.y * tile
-        if self['top']:
+        if self.walls['top']:
             pygame.draw.line(sc, pygame.Color('darkgreen'), (x, y), (x + tile, y), self.thickness)
-        if self['right']:
+        if self.walls['right']:
             pygame.draw.line(sc, pygame.Color('darkgreen'), (x + tile, y), (x + tile, y + tile), self.thickness)    
-        if self['bottom']:
+        if self.walls['bottom']:
             pygame.draw.line(sc, pygame.Color('darkgreen'), (x + tile, y + tile),(x, y + tile), self.thickness)
-        if self['left']:
+        if self.walls['left']:
             pygame.draw.line(sc, pygame.Color('darkgreen'), (x, y + tile), (x, y), self.thickness)
     
     # check if cell does exist and returns it if it does
@@ -46,5 +46,5 @@ class Cell:
             neighbors.append(left)
         return choice(neighbors) if neighbors else False
     
-    
+
 
