@@ -62,5 +62,4 @@ class Player:
             self.velY = self.speed
         self.x += self.velX
         self.y += self.velY  
-        self.rect = pygame.rect(int(self.x), int(self.y), self.player_size, self.player_size)
-        
+        self.rect = pygame.Rect(int(self.x), int(self.y), self.player_size, self.player_size)
