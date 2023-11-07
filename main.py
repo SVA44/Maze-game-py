@@ -1,6 +1,6 @@
 # main.py
 
-import pygame, sys
+import pygame, sys, os
 from maze import Maze
 from player import Player
 from clock import Clock
@@ -8,6 +8,16 @@ from game import Game
 
 pygame.init()
 pygame.font.init()
+pygame.mixer.init() # add sound
+
+# Sounds dir
+s = 'sound'
+
+# Background music
+music = pygame.mixer.music.load(os.path.join(s, 'arcade_wave.mp3'))
+
+# Complete maze congratulation music
+congrads = pygame.mixer.Sound(os.path.join(s, 'fantasy_success.wav'))
 
 class Main():
     def __init__(self, screen):
@@ -54,6 +64,7 @@ class Main():
         clock = Clock()
         maze.generate_maze()
         clock.start_timer()
+        pygame.mixer.music.play(-1)
         while self.running:
             self.screen.fill("gray")
             self.screen.fill( pygame.Color("darkslategray"), (603, 0, 752, 752))
@@ -86,6 +97,9 @@ class Main():
                         player.down_pressed = False
                     player.check_move(tile, maze.grid_cells, maze.thickness)
             if game.is_game_over(player):
+                # played only once right after the player complete the game
+                if self.game_over is False:
+                    pygame.mixer.Sound.play(congrads)
                 self.game_over = True
                 player.left_pressed = False
                 player.right_pressed = False
@@ -103,3 +117,4 @@ if __name__ == "__main__":
 
     game = Main(screen)
     game.main(window_size, tile_size)
+    
