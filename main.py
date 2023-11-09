@@ -5,6 +5,7 @@ from maze import Maze
 from player import Player
 from clock import Clock
 from game import Game
+from ghost import Ghost
 
 pygame.init()
 pygame.font.init()
@@ -37,7 +38,7 @@ class Main():
         self.screen.blit(instructions3,(630,362))
 
     # draws all configs; maze, player, instructions, and time
-    def _draw(self, maze, tile, player, game, clock):
+    def _draw(self, maze, tile, player, ghost, game, clock):
         # draw maze
         [cell.draw(self.screen, tile) for cell in maze.grid_cells]
         # add a goal point to reach
@@ -45,6 +46,11 @@ class Main():
         # draw every player movement
         player.draw(self.screen)
         player.update()
+        # draw ghost movement
+        ghost.draw(self.screen)
+        target = [player.x, player.y]
+        move = ghost.next_move(tile, maze.grid_cells, maze.thickness, target)
+        ghost.update(move)
         # instructions, clock, winning message
         self.instructions()
         if self.game_over:
@@ -61,6 +67,7 @@ class Main():
         maze = Maze(cols, rows)
         game = Game(maze.grid_cells[-1], tile)
         player = Player(tile // 3, tile // 3)
+        ghost = Ghost(tile // 3, tile // 3 + 2 * tile)
         clock = Clock()
         maze.generate_maze()
         clock.start_timer()
@@ -105,7 +112,7 @@ class Main():
                 player.right_pressed = False
                 player.up_pressed = False
                 player.down_pressed = False
-            self._draw(maze, tile, player, game, clock)
+            self._draw(maze, tile, player, ghost, game, clock)
             self.FPS.tick(60)
 
 if __name__ == "__main__":
