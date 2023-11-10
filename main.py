@@ -49,8 +49,7 @@ class Main():
         # draw ghost movement
         ghost.draw(self.screen)
         target = [player.x, player.y]
-        move = ghost.next_move(tile, maze.grid_cells, maze.thickness, target)
-        ghost.update(move)
+        ghost.update(tile, maze.grid_cells, maze.thickness)
         # instructions, clock, winning message
         self.instructions()
         if self.game_over:
@@ -67,8 +66,8 @@ class Main():
         maze = Maze(cols, rows)
         game = Game(maze.grid_cells[-1], tile)
         player = Player(tile // 3, tile // 3)
-        ghost = Ghost(tile // 3, tile // 3 + 2 * tile)
         clock = Clock()
+        ghost = Ghost(tile // 3, tile // 3 + 2 * tile, player.x, player.y, clock)
         maze.generate_maze()
         clock.start_timer()
         pygame.mixer.music.play(-1)
