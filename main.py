@@ -48,8 +48,10 @@ class Main():
         player.update()
         # draw ghost movement
         ghost.draw(self.screen)
-        target = [player.x, player.y]
+        
         ghost.update(tile, maze.grid_cells, maze.thickness)
+        
+            
         # instructions, clock, winning message
         self.instructions()
         if self.game_over:
@@ -67,7 +69,7 @@ class Main():
         game = Game(maze.grid_cells[-1], tile)
         player = Player(tile // 3, tile // 3)
         clock = Clock()
-        ghost = Ghost(tile // 3, tile // 3 + 2 * tile, player.x, player.y, clock)
+        ghost = Ghost(tile // 3, tile // 3 + 2 * tile, clock)
         maze.generate_maze()
         clock.start_timer()
         pygame.mixer.music.play(-1)
@@ -102,6 +104,11 @@ class Main():
                     if event.key == pygame.K_DOWN:
                         player.down_pressed = False
                     player.check_move(tile, maze.grid_cells, maze.thickness)
+            player_loc = [player.x, player.y]
+            
+            # detect player collision and trigger endgame
+            if (ghost.collide_player(player_loc)):
+                self.game_over = True
             if game.is_game_over(player):
                 # played only once right after the player complete the game
                 if self.game_over is False:
