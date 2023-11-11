@@ -4,7 +4,7 @@ import math
 import random
 
 class Ghost:
-    def __init__(self, x, y, player_x, player_y, clock):
+    def __init__(self, x, y, clock):
         self.x = int(x)
         self.y = int(y)
         self.player_size = 10
@@ -16,12 +16,11 @@ class Ghost:
         self.down_pressed = False
         self.velX = 0
         self.velY = 0
-        self.speed = 1
-        self.player_loc = [player_x, player_y]
+        self.speed = 4
         self.current_direction = random.choice(['right','left','top','bottom'])
-        self.new_direction = self.current_direction
+        self.prev_direction = self.current_direction
         self.turn_timer = 0
-        self.turn_flag = False
+        self.turn = False
         self.clock = clock
 
     # get current cell position of the ghost
@@ -43,11 +42,15 @@ class Ghost:
     def saw_player(self):
         return
 
-    @property
+    # collide with player
+    def collide_player(self, player_loc):
+        self.loc = [self.x, self.y]
+        return self.distance(self.loc, player_loc) < self.player_size + 4
+    
     # get opposite direction
-    def opposite_move(self):
+    def opposite_move(self, direction):
         opposites = {'right': 'left', 'left':'right','top':'bottom', 'bottom': 'top'}
-        return opposites[self.current_direction]
+        return opposites[direction]
     
     # list all possible moves
     def availableMoves(self, tile, grid_cells, thickness):
@@ -63,66 +66,84 @@ class Ghost:
         current_cell = self.get_current_cell(current_cell_x, current_cell_y, grid_cells)
         current_cell_abs_x, current_cell_abs_y = current_cell_x * tile, current_cell_y * tile
 
-        player_cell_x , player_cell_y = self.player_loc[0] // tile, self.player_loc[1] // tile
-        player_cell = self.get_current_cell(player_cell_x, player_cell_y, grid_cells)
 
         if move == "left":
             if current_cell.walls['left']:
-                if player_cell != current_cell:
-                    return False
+                
                 if self.x <= current_cell_abs_x + thickness:
                     return False
         if move == "right":
             if current_cell.walls['right']:
-                if player_cell != current_cell:
-                    return False
+                
                 if self.x >= current_cell_abs_x + tile -(self.player_size + thickness):
                     return False 
         if move == "top":
             if current_cell.walls['top']:
-                if player_cell != current_cell:
-                    return False
+                
                 if self.y <= current_cell_abs_y + thickness:
                     return False
         if move == "bottom":
             if current_cell.walls['bottom']:
-                if player_cell != current_cell:
-                    return False
+                
                 if self.y >= current_cell_abs_y + tile - (self.player_size + thickness):
                     return False
+        
         return True
-    
-    # change direction of the ghost
-    def change_direction(self, tile, grid_cells, thickness):
+    # check if ghost is within central of cell
+    def central_cell(self, tile, grid_cells, thickness):
         current_cell_x, current_cell_y = self.x // tile, self.y // tile
-        current_cell = self.get_current_cell(current_cell_x, current_cell_y, grid_cells)
-        f = lambda move:self.check_move(tile, grid_cells,thickness, move)
-        possible_directions = list(filter(f, current_cell.exits))
-        change_direction = random.choice(possible_directions)
-        self.turn_timer = self.clock.elapsed_time
-        return change_direction
+        current_cell_abs_x, current_cell_abs_y = current_cell_x * tile, current_cell_y * tile
+
+        if self.x <= current_cell_abs_x :
+            return False
+        if self.x >= current_cell_abs_x + tile -(self.player_size):
+            return False
+        if self.y <= current_cell_abs_y :
+            return False
+        if self.y >= current_cell_abs_y + tile - (self.player_size):
+            return False
+        return True
+
+    
     
     # updates ghost position while moving
     def update(self, tile, grid_cells, thickness):
         self.velX = 0
         self.velY = 0
-        moves = self.availableMoves(tile, grid_cells,thickness * 4)
-        opposite = self.opposite_move
-        if ( self.current_direction in moves and ( len(moves) == 1 or random.randrange( 0,1000 ) <= 999.9 ) ):
-            pass
-        elif ( self.current_direction not in moves and len(moves) == 1 ):
-            self.new_direction = moves[0]   # maybe u-turn
-            self.turn_flag = True
-        else:  # more than 1 exit
-            if (opposite in moves):
-                moves.remove(opposite)
-            self.new_direction = random.choice(moves)
-            self.turn_flag = True
+        possible_moves = self.availableMoves(tile, grid_cells, thickness)
+        # check if move is valid, if not then stop moving
+        if (not self.check_move(tile, grid_cells, thickness,self.current_direction)):
+            self.prev_direction = self.current_direction
+            self.current_direction = "stop"
+        # after stop moving, change direction to valid ones
+        if self.current_direction == "stop":
+            if len(possible_moves) == 1:
+                self.current_direction = possible_moves[0]
+            else:
+                if (self.opposite_move(self.prev_direction) in possible_moves):
+                    possible_moves.remove(self.opposite_move(self.prev_direction))
+                self.current_direction = random.choice(possible_moves)
+
+        # if move to a cell that has more than 2 exits, consider changing direction
+        if len(possible_moves) > 2: 
+            if self.central_cell(tile, grid_cells, thickness):
+                self.prev_direction = self.current_direction
+                self.current_direction = "redirecting"
+        # redirect direction so that 60% move in a new direction and prevent doing a 180
+        if self.current_direction == "redirecting":
+            if (self.opposite_move(self.prev_direction) in possible_moves):
+                possible_moves.remove(self.opposite_move(self.prev_direction))
+            if self.prev_direction in possible_moves:
+                if random.randrange(0,100) <= 60:
+                    possible_moves.remove(self.prev_direction)
+                    self.current_direction = random.choice(possible_moves)
+                else:
+                    self.current_direction = self.prev_direction
+            else:
+                    self.current_direction = random.choice(possible_moves)
         
-        if self.turn_flag and self.clock.elapsed_time - self.turn_timer >= 0:
-            self.turn_timer = self.clock.elapsed_time
-            self.turn_flag = False
-            self.current_direction = self.new_direction
+        
+            
             
         if self.current_direction == "left":
             self.velX = -self.speed
