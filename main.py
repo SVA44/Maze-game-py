@@ -6,6 +6,7 @@ from player import Player
 from clock import Clock
 from game import Game
 from ghost import Ghost
+from coin import Coin
 
 pygame.init()
 pygame.font.init()
@@ -20,6 +21,8 @@ music = pygame.mixer.music.load(os.path.join(s, 'arcade_wave.mp3'))
 # Complete maze congratulation music
 congrads = pygame.mixer.Sound(os.path.join(s, 'fantasy_success.wav'))
 
+# Coin grabbing sound
+coin_collecting = pygame.mixer.Sound(os.path.join(s, 'coin_collecting.wav'))
 class Main():
     def __init__(self, screen):
         self.screen = screen
@@ -27,6 +30,8 @@ class Main():
         self.message_color = pygame.Color("cyan")
         self.running = True
         self.game_over = False
+        self.ghost_collision = False
+        self.result = "Win"
         self.FPS = pygame.time.Clock()
     
     def instructions(self):
@@ -38,7 +43,7 @@ class Main():
         self.screen.blit(instructions3,(630,362))
 
     # draws all configs; maze, player, instructions, and time
-    def _draw(self, maze, tile, player, ghost, game, clock):
+    def _draw(self, maze, tile, player, ghost, game, clock, coins):
         # draw maze
         [cell.draw(self.screen, tile) for cell in maze.grid_cells]
         # add a goal point to reach
@@ -48,15 +53,15 @@ class Main():
         player.update()
         # draw ghost movement
         ghost.draw(self.screen)
-        
         ghost.update(tile, maze.grid_cells, maze.thickness)
-        
-            
+        # draw coins
+        for coin in coins:
+            coin.draw(self.screen) 
         # instructions, clock, winning message
         self.instructions()
         if self.game_over:
             clock.stop_timer()
-            self.screen.blit(game.message(),(610,120))
+            self.screen.blit(game.message(self.result),(610,120))
         else:
             clock.update_timer()
         self.screen.blit(clock.display_timer(), (625,200))
@@ -68,8 +73,12 @@ class Main():
         maze = Maze(cols, rows)
         game = Game(maze.grid_cells[-1], tile)
         player = Player(tile // 3, tile // 3)
+        coins = []
+        for cell in maze.grid_cells:
+            coin_cell = Coin(cell.x * tile + 5 * tile // 12, cell.y * tile + 5 * tile // 12)
+            coins.append(coin_cell)
         clock = Clock()
-        ghost = Ghost(tile // 3, tile // 3 + 2 * tile, clock)
+        ghost = Ghost(tile // 3, -2 * tile // 3 + (frame_size[0] // tile) * tile, clock)
         maze.generate_maze()
         clock.start_timer()
         pygame.mixer.music.play(-1)
@@ -106,20 +115,34 @@ class Main():
                     player.check_move(tile, maze.grid_cells, maze.thickness)
             player_loc = [player.x, player.y]
             
-            # detect player collision and trigger endgame
+            # detect player collision and trigger a lose game
             if (ghost.collide_player(player_loc)):
-                self.game_over = True
-            if game.is_game_over(player):
+                self.ghost_collision = True
+                self.result = "Lose"
+            
+            # detect coin collection and trigger a sound
+            coin_grabbed = None
+            for coin in coins:
+                if coin.collide_player(player_loc):
+                    pygame.mixer.Sound.play(coin_collecting)
+                    coin_grabbed = coin
+            if coin_grabbed:
+
+                coins.remove(coin_grabbed)
+            if game.is_game_over(player, self.ghost_collision):
                 # played only once right after the player complete the game
                 if self.game_over is False:
                     pygame.mixer.Sound.play(congrads)
-                self.game_over = True
-                player.left_pressed = False
-                player.right_pressed = False
-                player.up_pressed = False
-                player.down_pressed = False
-            self._draw(maze, tile, player, ghost, game, clock)
-            self.FPS.tick(60)
+                    self.game_over = True
+                    # stop all player movement
+                    player.left_pressed = False
+                    player.right_pressed = False
+                    player.up_pressed = False
+                    player.down_pressed = False
+                    # stop all ghost movement
+                    ghost.current_direction = None
+            self._draw(maze, tile, player, ghost, game, clock, coins)
+            self.FPS.tick(60)                                   
 
 if __name__ == "__main__":
     window_size = (602, 602)
