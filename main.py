@@ -29,6 +29,7 @@ class Main():
         self.font = pygame.font.SysFont("impact", 30)
         self.message_color = pygame.Color("cyan")
         self.running = True
+        self.score = 0
         self.game_over = False
         self.ghost_collision = False
         self.result = "Win"
@@ -64,6 +65,9 @@ class Main():
             self.screen.blit(game.message(self.result),(610,120))
         else:
             clock.update_timer()
+        # display current score
+        self.screen.blit(self.font.render("Score: " + str(self.score), True, self.message_color), (620,240))
+        # display timer
         self.screen.blit(clock.display_timer(), (625,200))
         pygame.display.flip()
     
@@ -127,7 +131,7 @@ class Main():
                     pygame.mixer.Sound.play(coin_collecting)
                     coin_grabbed = coin
             if coin_grabbed:
-
+                self.score += 10
                 coins.remove(coin_grabbed)
             if game.is_game_over(player, self.ghost_collision):
                 # played only once right after the player complete the game
